@@ -18,5 +18,6 @@ Gem::Specification.new do |gem|
   # Runtime dependencies
   gem.add_dependency 'rake'
   gem.add_dependency 'capistrano'
+  gem.add_dependency 'capistrano-utils'
   gem.add_dependency 'activesupport'
 end

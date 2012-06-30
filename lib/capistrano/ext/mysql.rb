@@ -5,9 +5,7 @@ end
 Capistrano::Configuration.instance.load do
   namespace :db do
     namespace :mysql do
-      desc '[internal] Load the credentials'
-      task :credentials do
-
+      ['credentials', 'root_credentials'].each do |method|
       end
     end
   end
