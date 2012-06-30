@@ -16,6 +16,7 @@ Gem::Specification.new do |gem|
   gem.version       = '0.0.1'
 
   # Runtime dependencies
+  gem.add_dependency 'rake'
   gem.add_dependency 'capistrano'
   gem.add_dependency 'activesupport'
 end
