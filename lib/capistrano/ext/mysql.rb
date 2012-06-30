@@ -28,7 +28,23 @@ Capistrano::Configuration.instance.load do
           CMD
         rescue Capistrano::CommandError
           logger.important 'ERROR: Could not create the user used to access the database.'
-          abort 'ERROR: Could not create the user used to access the database.'
+        end
+      end
+
+      desc '[internal] Create the database'
+      task :create_database, :roles => :db do
+        auth = fetch :db_credentials
+
+        begin
+          run <<-CMD
+            mysqladmin \
+              --host='#{auth[:hostname]}' \
+              --user='#{auth[:username]}' \
+              --password='#{auth[:password]}' \
+              create '#{fetch :db_database_name}'
+          CMD
+        rescue Capistrano::CommandError
+          logger.info 'ERROR: Could not create the database'
         end
       end
     end
