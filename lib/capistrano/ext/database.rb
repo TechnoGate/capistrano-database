@@ -7,7 +7,17 @@ end
 
 Capistrano::Configuration.instance.load do
   namespace :db do
-    ['credentials', 'root_credentials'].each do |method|
+    desc '[internal] Create the database user'
+    task :create_db_user, :roles => :db do
+      find_and_execute_db_task :create_db_user
+    end
+
+    desc '[internal] Create the database'
+    task :create_database, :roles => :db do
+      find_and_execute_db_task :create_database
+    end
+
+    [:credentials, :root_credentials].each do |method|
       desc "[internal] Print the database server #{method}"
       task "print_#{method}", :roles => :app do
         logger.trace format_credentials(fetch "db_#{method}".to_sym)
@@ -17,7 +27,7 @@ Capistrano::Configuration.instance.load do
       task method, :roles => :app do
         return if exists?("db_#{method}".to_sym)
 
-        if remote_file_exists?(fetch "db_#{method}_file".to_sym)
+        if remote_file_exists?(fetch("db_#{method}_file".to_sym), use_sudo: method == :root_credentials)
           send "read_#{method}"
         else
           send "generate_#{method}"
@@ -26,12 +36,12 @@ Capistrano::Configuration.instance.load do
 
       desc "[internal] Read the database server #{method}"
       task "read_#{method}", :roles => :app do
-        read(fetch "db_#{method}_file".to_sym).tap do |content|
+        read(fetch("db_#{method}_file".to_sym), use_sudo: method == :root_credentials).tap do |content|
           set "db_#{method}".to_sym, {
-            hostname: match_from_content(content, method, 'host'),
-            port:     match_from_content(content, method, 'port'),
-            username: match_from_content(content, method, 'user'),
-            password: match_from_content(content, method, 'pass'),
+            hostname: match_from_content(content, 'host'),
+            port:     match_from_content(content, 'port'),
+            username: match_from_content(content, 'user'),
+            password: match_from_content(content, 'pass'),
           }
         end
       end
@@ -46,10 +56,10 @@ Capistrano::Configuration.instance.load do
                         default: '',
                         validate: /\A[0-9]*\Z/),
           username: ask('What is the username used to access the database',
-                        default: fetch(:db_username),
+                        default: (method == :credentials) ? fetch(:db_username) : 'root',
                         validate: /.+/),
           password: ask('What is the password used to access the database',
-                        default: '',
+                        default: gen_pass(8),
                         validate: /.+/,
                         echo: false),
         }
@@ -57,15 +67,21 @@ Capistrano::Configuration.instance.load do
 
       desc "[internal] Write the database server #{method}"
       task "write_#{method}", :roles => :app do
-        write fetch("db_#{method}_file".to_sym),
-          format_credentials(fetch "db_#{method}".to_sym)
+        on_rollback { run "rm -f #{fetch("db_#{method}_file".to_sym)}" }
+
+        write format_credentials(fetch "db_#{method}".to_sym),
+          fetch("db_#{method}_file".to_sym),
+          use_sudo: method == :root_credentials
       end
     end
   end
 
   # Dependencies
-  before 'db:print_credentials', 'db:credentials'
+  before 'db:print_credentials',      'db:credentials'
   before 'db:print_root_credentials', 'db:root_credentials'
+  before 'db:create_db_user',         'db:root_credentials'
+  before 'db:create_db_user',         'db:credentials'
+  before 'db:create_database',        'db:credentials'
 
   ['credentials', 'root_credentials'].each do |method|
     after "db:generate_#{method}", "db:write_#{method}"
