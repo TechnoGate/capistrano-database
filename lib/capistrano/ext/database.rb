@@ -25,12 +25,12 @@ Capistrano::Configuration.instance.load do
 
       desc "[internal] Load the database server #{method}"
       task method, :roles => :app do
-        return if exists?("db_#{method}".to_sym)
-
-        if remote_file_exists?(fetch("db_#{method}_file".to_sym), use_sudo: method == :root_credentials)
-          send "read_#{method}"
-        else
-          send "generate_#{method}"
+        unless exists?("db_#{method}".to_sym)
+          if remote_file_exists?(fetch("db_#{method}_file".to_sym), use_sudo: method == :root_credentials)
+            send "read_#{method}"
+          else
+            send "generate_#{method}"
+          end
         end
       end
 
@@ -76,7 +76,7 @@ Capistrano::Configuration.instance.load do
     end
   end
 
-  # Dependencies
+  # Internal Dependencies
   before 'db:print_credentials',      'db:credentials'
   before 'db:print_root_credentials', 'db:root_credentials'
   before 'db:create_db_user',         'db:root_credentials'
@@ -86,4 +86,9 @@ Capistrano::Configuration.instance.load do
   ['credentials', 'root_credentials'].each do |method|
     after "db:generate_#{method}", "db:write_#{method}"
   end
+
+  # External Dependencies
+  before 'deploy:server:setup', 'db:create_db_user'
+  after 'deploy:server:setup', 'db:create_database'
+  before 'db:write_credentials', 'deploy:setup'
 end
