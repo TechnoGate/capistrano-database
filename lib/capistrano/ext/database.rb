@@ -145,5 +145,5 @@ Capistrano::Configuration.instance(:must_exist).load do
   # External Dependencies
   before 'deploy:server:setup', 'db:create_db_user'
   after 'deploy:server:setup', 'db:create_database'
-  before 'db:write_credentials', 'deploy:setup'
+  before 'db:write_credentials', 'deploy:setup_if_needed'
 end
