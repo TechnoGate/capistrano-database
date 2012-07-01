@@ -7,20 +7,6 @@ end
 
 Capistrano::Configuration.instance(:must_exist).load do
   namespace :db do
-    desc '[internal] Create the database user'
-    task :create_db_user, :roles => :db do
-      transaction do
-        find_and_execute_db_task :create_db_user
-      end
-    end
-
-    desc '[internal] Create the database'
-    task :create_database, :roles => :db do
-      transaction do
-        find_and_execute_db_task :create_database
-      end
-    end
-
     desc 'Backup the database'
     task :backup, :roles => :db do
       set :latest_backup,
@@ -38,14 +24,6 @@ Capistrano::Configuration.instance(:must_exist).load do
       end
     end
 
-    desc '[internal] Download the db backup file'
-    task :download_backup, :roles => :db do
-      fn = "#{random_tmp_file}.sql.bz2"
-      on_rollback { `rm -f #{fn}` }
-      download "#{fetch :latest_backup}.bz2", fn
-      logger.important "The backup has been downloaded to #{fn}"
-    end
-
     desc 'Import the database'
     task :import, :roles => :db do
       transaction do
@@ -54,20 +32,6 @@ Capistrano::Configuration.instance(:must_exist).load do
         find_and_execute_db_task :import
         restore_skiped_tables if exists_and_not_empty? :skip_tables_on_import
       end
-    end
-
-    desc '[internal] Backup skiped tables'
-    task :backup_skiped_tables, :roles => :db do
-      set :backuped_skiped_tables_file, random_tmp_file
-      on_rollback { run "rm -f #{fetch :backuped_skiped_tables_file}" }
-      find_and_execute_db_task :backup_skiped_tables
-    end
-
-    desc '[internal] Restore skiped tables'
-    task :restore_skiped_tables, :roles => :db do
-      on_rollback { run "rm -f #{fetch :backuped_skiped_tables_file}" }
-      find_and_execute_db_task :restore_skiped_tables
-      run "rm -f #{fetch :backuped_skiped_tables_file}"
     end
 
     [:credentials, :root_credentials].each do |method|
@@ -126,6 +90,42 @@ Capistrano::Configuration.instance(:must_exist).load do
           fetch("db_#{method}_file".to_sym),
           use_sudo: method == :root_credentials
       end
+    end
+
+    desc '[internal] Create the database user'
+    task :create_db_user, :roles => :db do
+      transaction do
+        find_and_execute_db_task :create_db_user
+      end
+    end
+
+    desc '[internal] Create the database'
+    task :create_database, :roles => :db do
+      transaction do
+        find_and_execute_db_task :create_database
+      end
+    end
+
+    desc '[internal] Download the db backup file'
+    task :download_backup, :roles => :db do
+      fn = "#{random_tmp_file}.sql.bz2"
+      on_rollback { `rm -f #{fn}` }
+      download "#{fetch :latest_backup}.bz2", fn
+      logger.important "The backup has been downloaded to #{fn}"
+    end
+
+    desc '[internal] Backup skiped tables'
+    task :backup_skiped_tables, :roles => :db do
+      set :backuped_skiped_tables_file, random_tmp_file
+      on_rollback { run "rm -f #{fetch :backuped_skiped_tables_file}" }
+      find_and_execute_db_task :backup_skiped_tables
+    end
+
+    desc '[internal] Restore skiped tables'
+    task :restore_skiped_tables, :roles => :db do
+      on_rollback { run "rm -f #{fetch :backuped_skiped_tables_file}" }
+      find_and_execute_db_task :restore_skiped_tables
+      run "rm -f #{fetch :backuped_skiped_tables_file}"
     end
   end
 
