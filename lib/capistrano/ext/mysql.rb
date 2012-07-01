@@ -2,7 +2,7 @@ unless Capistrano::Configuration.respond_to?(:instance)
   abort "capistrano/ext/database requires Capistrano 2"
 end
 
-Capistrano::Configuration.instance.load do
+Capistrano::Configuration.instance(:must_exist).load do
   namespace :db do
     namespace :mysql do
       desc '[internal] Create the database user'
