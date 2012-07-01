@@ -6,7 +6,7 @@ Capistrano::Configuration.instance(:must_exist).load do
   namespace :db do
     namespace :mysql do
       desc '[internal] Create the database user'
-      task :create_db_user, :roles => :db do
+      task :create_user, :roles => :db do
         auth  = fetch :db_credentials
         sauth = fetch :db_root_credentials
 

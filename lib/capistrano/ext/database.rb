@@ -103,9 +103,9 @@ Capistrano::Configuration.instance(:must_exist).load do
     end
 
     desc '[internal] Create the database user'
-    task :create_db_user, :roles => :db do
+    task :create_user, :roles => :db do
       transaction do
-        find_and_execute_db_task :create_db_user
+        find_and_execute_db_task :create_user
       end
     end
 
@@ -142,8 +142,8 @@ Capistrano::Configuration.instance(:must_exist).load do
   # Internal Dependencies
   before 'db:print_credentials',      'db:credentials'
   before 'db:print_root_credentials', 'db:root_credentials'
-  before 'db:create_db_user',         'db:root_credentials'
-  before 'db:create_db_user',         'db:credentials'
+  before 'db:create_user',            'db:root_credentials'
+  before 'db:create_user',            'db:credentials'
   before 'db:create_database',        'db:credentials'
   before 'db:backup',                 'db:credentials'
   before 'db:import',                 'db:credentials'
@@ -153,7 +153,7 @@ Capistrano::Configuration.instance(:must_exist).load do
   end
 
   # External Dependencies
-  before 'deploy:server:setup', 'db:create_db_user'
+  before 'deploy:server:setup', 'db:create_user'
   after 'deploy:server:setup', 'db:create_database'
   before 'db:write_credentials', 'deploy:setup_if_needed'
 end
