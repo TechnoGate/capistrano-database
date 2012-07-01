@@ -9,12 +9,49 @@ Capistrano::Configuration.instance(:must_exist).load do
   namespace :db do
     desc '[internal] Create the database user'
     task :create_db_user, :roles => :db do
-      find_and_execute_db_task :create_db_user
+      transaction do
+        find_and_execute_db_task :create_db_user
+      end
     end
 
     desc '[internal] Create the database'
     task :create_database, :roles => :db do
-      find_and_execute_db_task :create_database
+      transaction do
+        find_and_execute_db_task :create_database
+      end
+    end
+
+    desc 'Backup the database'
+    task :backup, :roles => :db do
+      set :latest_backup,
+        "#{fetch :backup_path}/#{fetch :db_database_name}_#{Time.now.strftime('%d-%m-%Y_%H-%M-%S')}.sql"
+      transaction do
+        find_and_execute_db_task :backup
+      end
+    end
+
+    desc 'Export the database'
+    task :export, :roles => :db do
+      transaction do
+        backup
+        download_backup
+      end
+    end
+
+    desc '[internal] Download the db backup file'
+    task :download_backup, :roles => :db do
+      fn = "#{random_tmp_file}.sql.bz2"
+      on_rollback { `rm -f #{fn}` }
+      download "#{fetch :latest_backup}.bz2", fn
+      logger.important "The backup has been downloaded to #{fn}"
+    end
+
+    desc 'Import the database'
+    task :import, :roles => :db do
+      transaction do
+        backup
+        find_and_execute_db_task :import
+      end
     end
 
     [:credentials, :root_credentials].each do |method|
@@ -82,6 +119,8 @@ Capistrano::Configuration.instance(:must_exist).load do
   before 'db:create_db_user',         'db:root_credentials'
   before 'db:create_db_user',         'db:credentials'
   before 'db:create_database',        'db:credentials'
+  before 'db:backup',                 'db:credentials'
+  before 'db:import',                 'db:credentials'
 
   ['credentials', 'root_credentials'].each do |method|
     after "db:generate_#{method}", "db:write_#{method}"

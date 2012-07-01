@@ -47,6 +47,49 @@ Capistrano::Configuration.instance(:must_exist).load do
           logger.info 'ERROR: Could not create the database'
         end
       end
+
+      desc '[internal] Backup mysql database'
+      task :backup, :roles => :db do
+        latest_backup = fetch :latest_backup
+        on_rollback { run "rm -f #{latest_backup}" }
+        auth  = fetch :db_credentials
+
+        begin
+          run <<-CMD
+            #{try_sudo} mysqldump \
+              --host='#{auth[:hostname]}' \
+              --user='#{auth[:username]}' \
+              --password='#{auth[:password]}' \
+              --default-character-set=utf8 \
+              '#{fetch :db_database_name}' > \
+              '#{latest_backup}' &&
+            #{try_sudo} bzip2 -9 '#{latest_backup}'
+          CMD
+        rescue Capistrano::CommandError
+          abort 'Not able to backup the database'
+        end
+      end
+
+      desc '[internal] Import a dump to the mysql database'
+      task :import, :roles => :db do
+        tmp_file = write File.read(arguments)
+        auth = fetch :db_credentials
+
+        begin
+          run <<-CMD
+            #{try_sudo} mysql \
+              --host='#{auth[:hostname]}' \
+              --user='#{auth[:username]}' \
+              --password='#{auth[:password]}' \
+              --default-character-set=utf8 \
+              '#{fetch :db_database_name}' < \
+              '#{tmp_file}' &&
+            rm -f '#{tmp_file}'
+          CMD
+        rescue Capistrano::CommandError
+          abort 'Failed to import the database'
+        end
+      end
     end
   end
 end
