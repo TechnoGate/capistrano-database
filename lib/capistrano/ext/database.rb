@@ -50,9 +50,9 @@ Capistrano::Configuration.instance(:must_exist).load do
     task :import, :roles => :db do
       transaction do
         backup
-        backup_skiped_tables
+        backup_skiped_tables  if exists_and_not_empty? :skip_tables_on_import
         find_and_execute_db_task :import
-        restore_skiped_tables
+        restore_skiped_tables if exists_and_not_empty? :skip_tables_on_import
       end
     end
 
