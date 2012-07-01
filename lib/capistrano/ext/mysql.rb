@@ -90,6 +90,46 @@ Capistrano::Configuration.instance(:must_exist).load do
           abort 'Failed to import the database'
         end
       end
+
+      desc '[internal] Backup skiped tables from the mysql database'
+      task :backup_skiped_tables, :roles => :db do
+        auth = fetch :db_credentials
+
+        fetch(:skip_tables_on_import, []).each do |t|
+          begin
+            run <<-CMD
+              #{try_sudo} mysqldump \
+                --host='#{auth[:hostname]}' \
+                --user='#{auth[:username]}' \
+                --password='#{auth[:password]}' \
+                --default-character-set=utf8 \
+                '#{fetch :db_database_name}' '#{t}' >> \
+                '#{fetch :backuped_skiped_tables_file}'
+            CMD
+          rescue Capistrano::CommandError
+            logger.info "WARNING: It seems the database does not have the table '#{t}', skipping it."
+          end
+        end
+
+        desc '[internal] Restore skiped tables to the mysql database'
+        task :restore_skiped_tables, :roles => :db do
+          auth = fetch :db_credentials
+
+          begin
+            run <<-CMD
+              mysql \
+                --host='#{auth[:hostname]}' \
+                --user='#{auth[:username]}' \
+                --password='#{auth[:password]}' \
+                --default-character-set=utf8 \
+                '#{fetch :db_database_name}' < \
+                #{fetch :backuped_skiped_tables_file}
+            CMD
+          rescue
+            abort 'ERROR: I could not restore the tables defined in skip_tables_on_import'
+          end
+        end
+      end
     end
   end
 end

@@ -50,8 +50,24 @@ Capistrano::Configuration.instance(:must_exist).load do
     task :import, :roles => :db do
       transaction do
         backup
+        backup_skiped_tables
         find_and_execute_db_task :import
+        restore_skiped_tables
       end
+    end
+
+    desc '[internal] Backup skiped tables'
+    task :backup_skiped_tables, :roles => :db do
+      set :backuped_skiped_tables_file, random_tmp_file
+      on_rollback { run "rm -f #{fetch :backuped_skiped_tables_file}" }
+      find_and_execute_db_task :backup_skiped_tables
+    end
+
+    desc '[internal] Restore skiped tables'
+    task :restore_skiped_tables, :roles => :db do
+      on_rollback { run "rm -f #{fetch :backuped_skiped_tables_file}" }
+      find_and_execute_db_task :restore_skiped_tables
+      run "rm -f #{fetch :backuped_skiped_tables_file}"
     end
 
     [:credentials, :root_credentials].each do |method|
