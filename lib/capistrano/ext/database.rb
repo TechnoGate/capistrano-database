@@ -6,6 +6,14 @@ unless Capistrano::Configuration.respond_to?(:instance)
 end
 
 Capistrano::Configuration.instance(:must_exist).load do
+
+  _cset :db_credentials_host_regex,            /hostname: (.*)$/o
+  _cset :db_credentials_host_regex_match,      1
+  _cset :db_credentials_port_regex,            /port: (.*)$/o
+  _cset :db_credentials_port_regex_match,      1
+  _cset :db_credentials_user_regex,            /username: (.*)$/o
+  _cset :db_credentials_user_regex_match,      1
+
   namespace :db do
     desc 'Backup the database'
     task :backup, :roles => :db do
