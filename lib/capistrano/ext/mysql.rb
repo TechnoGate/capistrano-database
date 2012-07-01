@@ -72,7 +72,7 @@ Capistrano::Configuration.instance(:must_exist).load do
 
       desc '[internal] Import a dump to the mysql database'
       task :import, :roles => :db do
-        tmp_file = write File.read(arguments)
+        tmp_file = write File.read(arguments.first)
         auth = fetch :db_credentials
 
         begin
