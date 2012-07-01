@@ -13,6 +13,8 @@ Capistrano::Configuration.instance(:must_exist).load do
   set :db_credentials_port_regex_match,      1
   set :db_credentials_user_regex,            /username: (.*)$/o
   set :db_credentials_user_regex_match,      1
+  set :db_credentials_pass_regex,            /password: (.*)$/o
+  set :db_credentials_pass_regex_match,      1
 
   namespace :db do
     desc 'Backup the database'
