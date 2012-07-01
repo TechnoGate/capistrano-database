@@ -20,7 +20,9 @@ Capistrano::Configuration.instance(:must_exist).load do
     desc 'Backup the database'
     task :backup, :roles => :db do
       set :latest_backup,
-        "#{fetch :backup_path}/#{fetch :db_database_name}_#{Time.now.strftime('%d-%m-%Y_%H-%M-%S')}.sql"
+        "#{fetch :backup_path}/#{fetch :db_database_name}_#{Time.now.strftime('%d-%m-%Y_%H-%M-%S')}.sql.bz2"
+      on_rollback { run "rm -f #{latest_backup.chomp '.bz2'} #{latest_backup}" }
+
       transaction do
         find_and_execute_db_task :backup
       end
@@ -120,7 +122,7 @@ Capistrano::Configuration.instance(:must_exist).load do
     task :download_backup, :roles => :db do
       fn = "#{arguments(false).first || random_tmp_file}.bz2"
       on_rollback { `rm -f #{fn}` }
-      download "#{fetch :latest_backup}.bz2", fn
+      download "#{fetch :latest_backup}", fn
       logger.important "The backup has been downloaded to #{fn}"
     end
 

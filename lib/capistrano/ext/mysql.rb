@@ -51,7 +51,6 @@ Capistrano::Configuration.instance(:must_exist).load do
       desc '[internal] Backup mysql database'
       task :backup, :roles => :db do
         latest_backup = fetch :latest_backup
-        on_rollback { run "rm -f #{latest_backup}" }
         auth  = fetch :db_credentials
 
         begin
@@ -62,8 +61,8 @@ Capistrano::Configuration.instance(:must_exist).load do
               --password='#{auth[:password]}' \
               --default-character-set=utf8 \
               '#{fetch :db_database_name}' > \
-              '#{latest_backup}' &&
-            #{try_sudo} bzip2 -9 '#{latest_backup}'
+              '#{latest_backup.chomp '.bz2'}' &&
+            #{try_sudo} bzip2 -9 '#{latest_backup.chomp '.bz2'}'
           CMD
         rescue Capistrano::CommandError
           abort 'Not able to backup the database'
