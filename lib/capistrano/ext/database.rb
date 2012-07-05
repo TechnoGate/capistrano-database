@@ -120,7 +120,8 @@ Capistrano::Configuration.instance(:must_exist).load do
 
     desc '[internal] Download the db backup file'
     task :download_backup, :roles => :db do
-      fn = "#{arguments(false).first || random_tmp_file}.bz2"
+      fn = "#{arguments(false).first || random_tmp_file}"
+      fn << '.sql.bz2' unless fn =~ /\A.*\.sql\.bz2\Z/
       on_rollback { `rm -f #{fn}` }
       download "#{fetch :latest_backup}", fn
       logger.important "The backup has been downloaded to #{fn}"
